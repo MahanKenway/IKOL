@@ -1,0 +1,58 @@
+name: Run IKOL Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      goal:
+        description: "Agent goal"
+        required: true
+        type: string
+      max_steps:
+        description: "Maximum agent steps"
+        required: false
+        default: "12"
+        type: string
+      provider:
+        description: "Provider (openai or openrouter)"
+        required: false
+        default: "openai"
+        type: choice
+        options:
+          - openai
+          - openrouter
+      model:
+        description: "Model override (optional)"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run agent
+        env:
+          AGENT_PROVIDER: ${{ inputs.provider }}
+          AGENT_MODEL: ${{ inputs.model }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_HTTP_REFERER: ${{ secrets.OPENROUTER_HTTP_REFERER }}
+          OPENROUTER_X_TITLE: IKOL Agent (GitHub Actions)
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ] && [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "Set OPENAI_API_KEY or OPENROUTER_API_KEY in repository secrets"
+            exit 1
+          fi
+          if [ -z "${AGENT_MODEL}" ]; then
+            unset AGENT_MODEL
+          fi
+          python3 -m py_compile main.py
+          python3 main.py run "${{ inputs.goal }}" --max-steps "${{ inputs.max_steps }}"
