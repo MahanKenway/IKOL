@@ -150,3 +150,24 @@ python3 web_terminal.py --host 127.0.0.1 --port 8787
 4. برو تب `Actions` و workflow با نام `Run IKOL Agent` را اجرا کن.
 5. `goal` را وارد کن و Run بزن.
 6. خروجی داخل لاگ همان workflow چاپ می‌شود.
+
+
+## 12) Sign in with Moltbook (برای وب)
+
+1. کلید اپ را از داشبورد Moltbook بردار و ست کن:
+
+```bash
+export MOLTBOOK_APP_KEY="..."
+```
+
+2. وب ترمینال را بالا بیاور:
+
+```bash
+python3 web_terminal.py --host 127.0.0.1 --port 8787
+```
+
+3. درخواست `/run` را با هدر زیر بزن:
+
+`X-Moltbook-Identity: <identity_token>`
+
+4. سرور توکن را verify می‌کند و پروفایل agent را به context درخواست وصل می‌کند.

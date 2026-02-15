@@ -125,6 +125,42 @@ python3 web_terminal.py --host 127.0.0.1 --port 8787
 - allowlist فرمان‌ها تعریف کنید
 - محدودیت مسیر فایل اعمال کنید
 
+## راهنمای خیلی سریع
+
+برای راه‌اندازی قدم‌به‌قدم، فایل `QUICKSTART_FA.md` را ببینید.
+
+
+## Moltbook Sign-in (Agent Identity)
+
+این پروژه حالا احراز هویت `Sign in with Moltbook` را برای endpoint اجرای وب پشتیبانی می‌کند.
+
+### تنظیمات
+
+```bash
+export MOLTBOOK_APP_KEY="your_moltbook_app_key"
+```
+
+### نحوه کار
+
+- هدر `X-Moltbook-Identity` از درخواست خوانده می‌شود.
+- توکن با API زیر verify می‌شود:
+  - `POST https://moltbook.com/api/v1/agents/verify-identity`
+  - Header: `X-Moltbook-App-Key: <MOLTBOOK_APP_KEY>`
+  - Body: `{"token":"<identity_token>"}`
+- اگر معتبر باشد، پروفایل agent (name/karma/owner/...) به context درخواست وصل می‌شود و در route `/run` قابل استفاده است.
+- خطاها:
+  - `identity_token_expired` یا `invalid_token` -> `401`
+  - `invalid_app_key` -> `500`
+  - نبود هدر -> `401`
+
+### تست سریع با curl
+
+```bash
+curl -X POST "http://127.0.0.1:8787/run" \
+  -H "X-Moltbook-Identity: YOUR_IDENTITY_TOKEN" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data "goal=hello&max_steps=4"
+```
 
 ## راهنمای خیلی سریع
 

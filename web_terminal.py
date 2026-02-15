@@ -2,12 +2,21 @@
 """Minimal web terminal for IKOL agent.
 
 Runs a tiny local web UI where users enter a goal and receive the agent output.
+Supports Moltbook identity verification via X-Moltbook-Identity header.
 """
 
 from __future__ import annotations
 
 import argparse
 import html
+import json
+import os
+import subprocess
+from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
+from urllib import request
+from urllib.error import HTTPError, URLError
 import os
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -34,6 +43,7 @@ PAGE_TEMPLATE = """<!doctype html>
     <div class="card">
       <h2>IKOL Agent — Web Terminal</h2>
       <p class="hint">هدف را وارد کن، جواب پایین چاپ می‌شود.</p>
+      <p class="hint">Authenticated agent: {agent}</p>
       <form method="POST" action="/run">
         <label>Goal</label>
         <textarea name="goal" rows="5" required>{goal}</textarea>
@@ -48,6 +58,65 @@ PAGE_TEMPLATE = """<!doctype html>
 </body>
 </html>"""
 
+VERIFY_IDENTITY_URL = "https://moltbook.com/api/v1/agents/verify-identity"
+
+
+@dataclass
+class AuthResult:
+    ok: bool
+    status_code: int
+    error: str | None = None
+    agent: dict[str, Any] | None = None
+
+
+class MoltbookIdentityVerifier:
+    def __init__(self, app_key: str):
+        self.app_key = app_key
+
+    def verify_token(self, token: str) -> AuthResult:
+        payload = json.dumps({"token": token}).encode("utf-8")
+        req = request.Request(
+            VERIFY_IDENTITY_URL,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "X-Moltbook-App-Key": self.app_key,
+            },
+            method="POST",
+        )
+        try:
+            with request.urlopen(req, timeout=20) as resp:  # noqa: S310
+                data = json.loads(resp.read().decode("utf-8"))
+        except HTTPError as exc:
+            return AuthResult(ok=False, status_code=502, error=f"verify_http_error:{exc.code}")
+        except URLError:
+            return AuthResult(ok=False, status_code=502, error="verify_unreachable")
+        except json.JSONDecodeError:
+            return AuthResult(ok=False, status_code=502, error="verify_invalid_response")
+
+        valid = bool(data.get("valid"))
+        error = data.get("error")
+        if valid:
+            agent = data.get("agent") or {}
+            return AuthResult(ok=True, status_code=200, agent=agent)
+
+        if error == "invalid_app_key":
+            return AuthResult(ok=False, status_code=500, error=error)
+        if error in {"identity_token_expired", "invalid_token"}:
+            return AuthResult(ok=False, status_code=401, error=error)
+        return AuthResult(ok=False, status_code=401, error=error or "invalid_token")
+
+
+class AppHandler(BaseHTTPRequestHandler):
+    verified_agent: dict[str, Any] | None = None
+
+    def _render(
+        self,
+        output: str = "Ready.",
+        goal: str = "",
+        max_steps: str = "12",
+        agent_name: str = "anonymous",
+    ) -> None:
 
 class AppHandler(BaseHTTPRequestHandler):
     def _render(self, output: str = "Ready.", goal: str = "", max_steps: str = "12") -> None:
@@ -55,6 +124,7 @@ class AppHandler(BaseHTTPRequestHandler):
             output=html.escape(output),
             goal=html.escape(goal),
             max_steps=html.escape(max_steps),
+            agent=html.escape(agent_name),
         )
         encoded = body.encode("utf-8")
         self.send_response(200)
@@ -63,12 +133,44 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _send_json_error(self, status_code: int, message: str) -> None:
+        payload = json.dumps({"error": message}, ensure_ascii=False).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _authenticate_agent(self) -> AuthResult:
+        app_key = os.getenv("MOLTBOOK_APP_KEY", "").strip()
+        if not app_key:
+            return AuthResult(ok=False, status_code=500, error="moltbook_app_key_missing")
+
+        token = (self.headers.get("X-Moltbook-Identity", "") or "").strip()
+        if not token:
+            return AuthResult(ok=False, status_code=401, error="missing_identity_token")
+
+        verifier = MoltbookIdentityVerifier(app_key)
+        result = verifier.verify_token(token)
+        if result.ok:
+            self.verified_agent = result.agent
+        return result
+
+    def do_GET(self) -> None:  # noqa: N802
+        if self.path != "/":
+            self.send_error(404)
+            return
     def do_GET(self) -> None:  # noqa: N802
         self._render()
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/run":
             self.send_error(404)
+            return
+
+        auth = self._authenticate_agent()
+        if not auth.ok:
+            self._send_json_error(auth.status_code, auth.error or "unauthorized")
             return
 
         length = int(self.headers.get("Content-Length", "0"))
@@ -79,6 +181,12 @@ class AppHandler(BaseHTTPRequestHandler):
         max_steps = (data.get("max_steps", ["12"])[0] or "12").strip()
 
         if not goal:
+            self._render(
+                output="Goal is required.",
+                goal=goal,
+                max_steps=max_steps,
+                agent_name=(auth.agent or {}).get("name", "unknown"),
+            )
             self._render(output="Goal is required.", goal=goal, max_steps=max_steps)
             return
 
@@ -87,6 +195,19 @@ class AppHandler(BaseHTTPRequestHandler):
         output = (completed.stdout + "\n" + completed.stderr).strip()
         if not output:
             output = f"Command finished with exit code {completed.returncode}."
+
+        profile = auth.agent or {}
+        owner = profile.get("owner") or {}
+        summary = (
+            f"agent={profile.get('name','unknown')} karma={profile.get('karma','?')} "
+            f"owner={owner.get('x_handle','unknown')}\n\n"
+        )
+        self._render(
+            output=summary + output,
+            goal=goal,
+            max_steps=max_steps,
+            agent_name=profile.get("name", "unknown"),
+        )
         self._render(output=output, goal=goal, max_steps=max_steps)
 
 
@@ -98,6 +219,8 @@ def main() -> None:
 
     if not os.getenv("OPENAI_API_KEY") and not os.getenv("OPENROUTER_API_KEY"):
         print("Warning: set OPENAI_API_KEY or OPENROUTER_API_KEY before running requests.")
+    if not os.getenv("MOLTBOOK_APP_KEY"):
+        print("Warning: set MOLTBOOK_APP_KEY to verify X-Moltbook-Identity tokens.")
 
     httpd = HTTPServer((args.host, args.port), AppHandler)
     print(f"IKOL Web Terminal running on http://{args.host}:{args.port}")
