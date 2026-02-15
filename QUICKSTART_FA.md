@@ -108,3 +108,45 @@ mkdir -p skills/moltbook
 5. (اختیاری) Skill نصب کن یا دستی در `skills/<name>/SKILL.md` قرار بده
 
 اگر بخواهی، قدم بعدی برایت یک **پیکربندی production-safe** هم می‌سازم (محدودکردن `run_shell` با allowlist + sandbox path).
+
+
+## 10) اگر می‌خواهی با OpenRouter اجرا کنی
+
+```bash
+export AGENT_PROVIDER=openrouter
+export OPENROUTER_API_KEY="..."
+export AGENT_MODEL="openai/gpt-4o-mini"
+python3 main.py run "یک agent برای تحلیل لاگ بساز" --max-steps 12
+```
+
+اختیاری (برای attribution):
+
+```bash
+export OPENROUTER_HTTP_REFERER="https://your-site.com"
+export OPENROUTER_X_TITLE="IKOL Agent"
+```
+
+
+## 11) اجرای بیرون از ترمینال محلی (دو روش ساده)
+
+### روش A: Web Terminal (ساده‌ترین حالت)
+
+```bash
+export OPENAI_API_KEY="..."
+python3 web_terminal.py --host 127.0.0.1 --port 8787
+```
+
+بعد مرورگر را باز کن:
+
+`http://127.0.0.1:8787`
+
+یک فرم می‌بینی: goal را می‌نویسی، روی Run می‌زنی، جواب پایین صفحه چاپ می‌شود.
+
+### روش B: GitHub Actions (روی سرور گیت‌هاب)
+
+1. پروژه را push کن روی GitHub.
+2. در Repo برو به: `Settings -> Secrets and variables -> Actions`
+3. Secret اضافه کن: `OPENAI_API_KEY` (یا `OPENROUTER_API_KEY`)
+4. برو تب `Actions` و workflow با نام `Run IKOL Agent` را اجرا کن.
+5. `goal` را وارد کن و Run بزن.
+6. خروجی داخل لاگ همان workflow چاپ می‌شود.

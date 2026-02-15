@@ -150,6 +150,17 @@ class LocalTools:
 
 
 class OpenAICompatibleLLM:
+    def __init__(
+        self,
+        model: str,
+        api_key: str,
+        base_url: str = "https://api.openai.com/v1",
+        extra_headers: dict[str, str] | None = None,
+    ):
+        self.model = model
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.extra_headers = extra_headers or {}
     def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1"):
         self.model = model
         self.api_key = api_key
@@ -161,6 +172,15 @@ class OpenAICompatibleLLM:
             "messages": messages,
             "temperature": temperature,
         }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+            **self.extra_headers,
+        }
+        req = request.Request(
+            f"{self.base_url}/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
         req = request.Request(
             f"{self.base_url}/chat/completions",
             data=json.dumps(payload).encode("utf-8"),
@@ -331,6 +351,38 @@ class AutonomousAgent:
 
 
 def build_runtime() -> tuple[AutonomousAgent, SkillRegistry, AgentMemory]:
+    provider = os.getenv("AGENT_PROVIDER", "openai").strip().lower()
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
+    api_key = openai_key or openrouter_key
+    if not api_key:
+        raise RuntimeError("Set OPENAI_API_KEY or OPENROUTER_API_KEY in your environment.")
+
+    if provider == "openrouter":
+        default_model = "openai/gpt-4o-mini"
+        default_base_url = "https://openrouter.ai/api/v1"
+    else:
+        default_model = "gpt-4o-mini"
+        default_base_url = "https://api.openai.com/v1"
+
+    model = os.getenv("AGENT_MODEL", default_model)
+    base_url = os.getenv("OPENAI_BASE_URL", default_base_url)
+
+    extra_headers: dict[str, str] = {}
+    referer = os.getenv("OPENROUTER_HTTP_REFERER", "")
+    title = os.getenv("OPENROUTER_X_TITLE", "IKOL Agent")
+    if provider == "openrouter":
+        if referer:
+            extra_headers["HTTP-Referer"] = referer
+        if title:
+            extra_headers["X-Title"] = title
+
+    llm = OpenAICompatibleLLM(
+        model=model,
+        api_key=api_key,
+        base_url=base_url,
+        extra_headers=extra_headers,
+    )
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
         raise RuntimeError("Set OPENAI_API_KEY in your environment.")
