@@ -1,5 +1,8 @@
 # IKOL Advanced Autonomous Agent
 
+این پروژه یک Agent پیشرفته است که علاوه بر چرخه‌ی اجرا، **برنامه‌ریزی و بازبینی** هم انجام می‌دهد.
+
+## قابلیت‌ها
 این پروژه به یک Agent پیشرفته‌تر تبدیل شده که علاوه بر چرخه‌ی اجرا، **برنامه‌ریزی و بازبینی** هم انجام می‌دهد.
 
 ## قابلیت‌های جدید
@@ -9,6 +12,8 @@
 - پشتیبانی از API سازگار با OpenAI
 - سیستم **Skill Registry**:
   - نصب Skill از URL با دستور `install-skill`
+  - بررسی دسترسی URL با `curl -s` از داخل CLI
+  - خواندن Skillهای نصب‌شده و اعمال در پرامپت اجرایی
   - خواندن Skillهای نصب‌شده و اعمال آن‌ها داخل پرامپت اجرایی
 - ابزارهای داخلی:
   - `read_file(path)`
@@ -24,12 +29,20 @@ export OPENAI_API_KEY="..."
 python3 main.py run "یک ابزار تحلیل لاگ بساز" --max-steps 12
 ```
 
+### 2) بررسی URL Skill با curl
+
+```bash
+python3 main.py verify-skill-url "https://moltbook.com/skill.md"
+```
+
+### 3) نصب Skill
 ### 2) نصب Skill
 
 ```bash
 python3 main.py install-skill "https://moltbook.com/skill.md" --name moltbook
 ```
 
+### 4) لیست Skillهای نصب‌شده
 ### 3) لیست Skillهای نصب‌شده
 
 ```bash
@@ -46,6 +59,7 @@ python3 main.py list-skills
 
 ## نکته Moltbook
 
+طبق درخواست، بررسی لینک با `curl -s` در ابزار اضافه شده. اگر شبکه‌ی محیط شما محدود باشد (مثلاً `CONNECT tunnel 403`) دانلود Skill شکست می‌خورد؛ در محیط بدون محدودیت همین دستورات نصب موفق می‌شود.
 اگر دسترسی شبکه به `moltbook.com` در محیط شما محدود باشد، دانلود Skill ممکن است خطا بدهد. در محیط خودتان همان دستور `install-skill` را اجرا کنید تا Skill نصب شده و از آن پس Agent در Prompt اجرا، دستورالعمل Skill را رعایت کند.
 
 ## هشدار امنیتی
@@ -54,3 +68,8 @@ python3 main.py list-skills
 - sandbox اجباری کنید
 - allowlist فرمان‌ها تعریف کنید
 - محدودیت مسیر فایل اعمال کنید
+
+
+## راهنمای خیلی سریع
+
+برای راه‌اندازی قدم‌به‌قدم، فایل `QUICKSTART_FA.md` را ببینید.

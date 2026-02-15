@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""IKOL: advanced autonomous agent with planning, reflection, memory, and skill installation."""
 """IKOL: advanced autonomous agent with plannning, reflection, memory, and skill installation."""
 
 from __future__ import annotations
@@ -47,6 +48,25 @@ class SkillRegistry:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def list_installed(self) -> list[str]:
+        skills: list[str] = []
+        for item in self.root.iterdir():
+            if item.is_dir() and (item / "SKILL.md").exists():
+                skills.append(item.name)
+        return sorted(skills)
+
+    def verify_url_with_curl(self, url: str) -> tuple[bool, str]:
+        command = ["curl", "-sS", "-L", url]
+        completed = subprocess.run(command, check=False, text=True, capture_output=True)
+        if completed.returncode == 0:
+            snippet = completed.stdout[:220]
+            return True, f"curl_ok bytes={len(completed.stdout)} preview={snippet!r}"
+        err = (completed.stderr or completed.stdout).strip()[:300]
+        return False, f"curl_failed code={completed.returncode} details={err}"
+
+    def install_from_url(self, url: str, name: str | None = None) -> str:
+        body, source = self._download_skill(url)
+        if body is None:
+            return source
         return sorted([p.name for p in self.root.iterdir() if p.is_dir() and (p / "SKILL.md").exists()])
 
     def install_from_url(self, url: str, name: str | None = None) -> str:
@@ -60,6 +80,31 @@ class SkillRegistry:
         target = self.root / skill_name
         target.mkdir(parents=True, exist_ok=True)
         (target / "SKILL.md").write_text(body, encoding="utf-8")
+        return f"Installed skill '{skill_name}' from {url} via {source}"
+
+    def _download_skill(self, url: str) -> tuple[str | None, str]:
+        # User explicitly asked for curl validation; try curl first.
+        curl_ok, curl_message = self.verify_url_with_curl(url)
+        if curl_ok:
+            completed = subprocess.run(
+                ["curl", "-sS", "-L", url],
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            if completed.returncode == 0 and completed.stdout.strip():
+                return completed.stdout, "curl"
+            return None, f"Skill download failed via curl: {curl_message}"
+
+        try:
+            with request.urlopen(url, timeout=30) as resp:  # noqa: S310
+                body = resp.read().decode("utf-8")
+            return body, "urllib"
+        except URLError as exc:
+            return (
+                None,
+                f"Skill download failed. curl=({curl_message}) urllib=({exc})",
+            )
         return f"Installed skill '{skill_name}' from {url}"
 
     def read_skill_bodies(self, limit_chars: int = 8000) -> str:
@@ -169,6 +214,13 @@ class AutonomousAgent:
             """
         ).strip()
 
+    def _executor_prompt(
+        self,
+        goal: str,
+        plan: dict[str, Any],
+        memory: list[dict[str, Any]],
+        history: list[dict[str, Any]],
+    ) -> str:
     def _executor_prompt(self, goal: str, plan: dict[str, Any], memory: list[dict[str, Any]], history: list[dict[str, Any]]) -> str:
         installed_skills = self.skill_registry.read_skill_bodies(limit_chars=6000)
         return textwrap.dedent(
@@ -214,6 +266,12 @@ class AutonomousAgent:
     def run(self, state: AgentState, memory_store: AgentMemory) -> str:
         memory = memory_store.load()
 
+        planner_raw = self.llm.chat(
+            [
+                {"role": "system", "content": "Return JSON only."},
+                {"role": "user", "content": self._planner_prompt(state.goal)},
+            ]
+        )
         planner_raw = self.llm.chat([
             {"role": "system", "content": "Return JSON only."},
             {"role": "user", "content": self._planner_prompt(state.goal)},
@@ -303,6 +361,9 @@ def cli() -> argparse.ArgumentParser:
     ins_p.add_argument("url", help="Direct URL to skill markdown")
     ins_p.add_argument("--name", help="Optional local skill name")
 
+    verify_p = sub.add_parser("verify-skill-url", help="Verify skill URL via curl")
+    verify_p.add_argument("url", help="Direct URL to skill markdown")
+
     sub.add_parser("list-skills", help="List installed skills")
     return parser
 
@@ -315,6 +376,12 @@ def main() -> None:
         registry = SkillRegistry(Path(os.getenv("AGENT_SKILLS_DIR", "skills")))
         msg = registry.install_from_url(args.url, args.name)
         print(msg)
+        return
+
+    if args.command == "verify-skill-url":
+        registry = SkillRegistry(Path(os.getenv("AGENT_SKILLS_DIR", "skills")))
+        ok, message = registry.verify_url_with_curl(args.url)
+        print(json.dumps({"ok": ok, "message": message}, ensure_ascii=False))
         return
 
     if args.command == "list-skills":
