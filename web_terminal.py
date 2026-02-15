@@ -17,6 +17,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 from urllib import request
 from urllib.error import HTTPError, URLError
+import os
+import subprocess
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs
 
 PAGE_TEMPLATE = """<!doctype html>
@@ -114,6 +117,9 @@ class AppHandler(BaseHTTPRequestHandler):
         max_steps: str = "12",
         agent_name: str = "anonymous",
     ) -> None:
+
+class AppHandler(BaseHTTPRequestHandler):
+    def _render(self, output: str = "Ready.", goal: str = "", max_steps: str = "12") -> None:
         body = PAGE_TEMPLATE.format(
             output=html.escape(output),
             goal=html.escape(goal),
@@ -154,6 +160,7 @@ class AppHandler(BaseHTTPRequestHandler):
         if self.path != "/":
             self.send_error(404)
             return
+    def do_GET(self) -> None:  # noqa: N802
         self._render()
 
     def do_POST(self) -> None:  # noqa: N802
@@ -180,6 +187,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 max_steps=max_steps,
                 agent_name=(auth.agent or {}).get("name", "unknown"),
             )
+            self._render(output="Goal is required.", goal=goal, max_steps=max_steps)
             return
 
         command = ["python3", "main.py", "run", goal, "--max-steps", max_steps]
@@ -200,6 +208,7 @@ class AppHandler(BaseHTTPRequestHandler):
             max_steps=max_steps,
             agent_name=profile.get("name", "unknown"),
         )
+        self._render(output=output, goal=goal, max_steps=max_steps)
 
 
 def main() -> None:
