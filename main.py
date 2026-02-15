@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """IKOL: advanced autonomous agent with planning, reflection, memory, and skill installation."""
+"""IKOL: advanced autonomous agent with plannning, reflection, memory, and skill installation."""
 
 from __future__ import annotations
 
@@ -66,6 +67,14 @@ class SkillRegistry:
         body, source = self._download_skill(url)
         if body is None:
             return source
+        return sorted([p.name for p in self.root.iterdir() if p.is_dir() and (p / "SKILL.md").exists()])
+
+    def install_from_url(self, url: str, name: str | None = None) -> str:
+        try:
+            with request.urlopen(url, timeout=30) as resp:  # noqa: S310
+                body = resp.read().decode("utf-8")
+        except URLError as exc:
+            return f"Skill download failed: {exc}"
 
         skill_name = name or self._derive_name(url)
         target = self.root / skill_name
@@ -96,6 +105,7 @@ class SkillRegistry:
                 None,
                 f"Skill download failed. curl=({curl_message}) urllib=({exc})",
             )
+        return f"Installed skill '{skill_name}' from {url}"
 
     def read_skill_bodies(self, limit_chars: int = 8000) -> str:
         chunks: list[str] = []
@@ -211,6 +221,7 @@ class AutonomousAgent:
         memory: list[dict[str, Any]],
         history: list[dict[str, Any]],
     ) -> str:
+    def _executor_prompt(self, goal: str, plan: dict[str, Any], memory: list[dict[str, Any]], history: list[dict[str, Any]]) -> str:
         installed_skills = self.skill_registry.read_skill_bodies(limit_chars=6000)
         return textwrap.dedent(
             f"""
@@ -261,6 +272,10 @@ class AutonomousAgent:
                 {"role": "user", "content": self._planner_prompt(state.goal)},
             ]
         )
+        planner_raw = self.llm.chat([
+            {"role": "system", "content": "Return JSON only."},
+            {"role": "user", "content": self._planner_prompt(state.goal)},
+        ])
         plan = extract_json(planner_raw)
         state.history.append({"phase": "plan", "data": plan})
 
