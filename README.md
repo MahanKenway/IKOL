@@ -15,6 +15,8 @@
   - `read_file(path)`
   - `write_file(path, content)`
   - `run_shell(command)`
+- اجرای ریموت با **GitHub Actions**
+- اجرای ساده با **Web Terminal**
 
 ## CLI
 
@@ -51,6 +53,34 @@ python3 main.py install-skill "https://moltbook.com/skill.md" --name moltbook
 ```bash
 python3 main.py list-skills
 ```
+
+## Web Terminal خیلی ساده
+
+اگر دوست داری با ترمینال‌طورِ وب اجرا کنی:
+
+```bash
+export OPENAI_API_KEY="..."
+python3 web_terminal.py --host 127.0.0.1 --port 8787
+```
+
+بعد در مرورگر باز کن:
+
+`http://127.0.0.1:8787`
+
+## GitHub Actions (اجرای بیرون از سیستم خودت)
+
+فایل workflow آماده شده: `.github/workflows/run-agent.yml`
+
+### مراحل استفاده
+
+1. ریپو را در GitHub push کن.
+2. برو به **Settings → Secrets and variables → Actions**.
+3. حداقل یکی از Secretها را اضافه کن:
+   - `OPENAI_API_KEY`
+   - `OPENROUTER_API_KEY`
+4. برو به تب **Actions** و workflow `Run IKOL Agent` را انتخاب کن.
+5. روی **Run workflow** بزن و `goal` را وارد کن.
+6. خروجی را در log همان run می‌بینی.
 
 ## متغیرهای محیطی
 
