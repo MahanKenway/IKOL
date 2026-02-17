@@ -67,6 +67,7 @@ python3 main.py install-skill "https://moltbook.com/skill.md" --name moltbook
 python3 main.py list-skills
 ```
 
+## Web Console خیلی ساده (UI-TARS-style)
 ## Web Terminal خیلی ساده
 
 اگر دوست داری با ترمینال‌طورِ وب اجرا کنی:
@@ -162,6 +163,28 @@ curl -X POST "http://127.0.0.1:8787/run" \
   --data "goal=hello&max_steps=4"
 ```
 
+
+## GitHub Pages?
+
+خیر. این پروژه بک‌اند پایتون دارد و روی GitHub Pages بالا نمی‌آید. برای UI زنده باید روی یک سرویس runtime مثل Render/Railway/Fly اجرا شود.
+
+
+## Deploy سریع روی Render
+
+1. ریپو را به GitHub push کن.
+2. در Render یک **Web Service** بساز و همین ریپو را وصل کن.
+3. Start Command را بگذار:
+
+```bash
+python3 web_terminal.py --host 0.0.0.0 --port $PORT
+```
+
+4. Environment Variables را ست کن:
+- `OPENAI_API_KEY` یا `OPENROUTER_API_KEY`
+- `AGENT_PROVIDER` (اختیاری)
+- `MOLTBOOK_APP_KEY` (اگر auth می‌خواهی)
+
+بعد از deploy یک URL عمومی می‌گیری و UI از مرورگر در دسترس می‌شود.
 ## راهنمای خیلی سریع
 
 برای راه‌اندازی قدم‌به‌قدم، فایل `QUICKSTART_FA.md` را ببینید.

@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""UI-TARS-style minimal web console for IKOL agent.
+
+- Browser UI for entering goal + max steps
+- Optional Moltbook identity token input
+- JSON API endpoint `/api/run`
+- Legacy form endpoint `/run` kept for backward compatibility
 """Minimal web terminal for IKOL agent.
 
 Runs a tiny local web UI where users enter a goal and receive the agent output.
@@ -17,6 +23,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 from urllib import request
 from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs
+
+VERIFY_IDENTITY_URL = "https://moltbook.com/api/v1/agents/verify-identity"
+
 import os
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -27,6 +37,99 @@ PAGE_TEMPLATE = """<!doctype html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IKOL UI Console</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: Inter, ui-monospace, monospace; background:#0a0f1f; color:#e5edff; }
+    .container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#101732; border:1px solid #243052; border-radius:14px; padding:16px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+    h1 { margin:0 0 6px; font-size: 20px; }
+    .muted { color:#95a7d1; font-size:13px; margin:0 0 12px; }
+    label { display:block; margin:10px 0 6px; font-size:13px; color:#bbcaf0; }
+    input, textarea { width:100%; box-sizing:border-box; border:1px solid #33446f; border-radius:10px; background:#0d1430; color:#e8f0ff; padding:10px; }
+    textarea { min-height:110px; resize: vertical; }
+    .row { display:flex; gap:12px; }
+    .row > div { flex:1; }
+    button { background:#3a7afe; color:#fff; border:0; border-radius:10px; padding:10px 14px; font-weight:600; cursor:pointer; margin-top:12px; }
+    pre { background:#090f24; border:1px solid #273760; border-radius:10px; padding:14px; min-height:180px; white-space:pre-wrap; }
+    .pill { display:inline-block; font-size:12px; border:1px solid #33446f; padding:2px 8px; border-radius:999px; color:#b9c9ef; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>IKOL UI Console</h1>
+      <p class="muted">یک نسخه ساده و سایت‌طور برای اجرای Agent (الهام‌گرفته از UX مدرن Agent Console).</p>
+      <span class="pill">Auth Agent: <span id="agentName">anonymous</span></span>
+      <label>Goal</label>
+      <textarea id="goal" placeholder="مثال: یک برنامه برای تحلیل لاگ طراحی کن"></textarea>
+      <div class="row">
+        <div>
+          <label>Max Steps</label>
+          <input id="maxSteps" type="number" min="1" max="50" value="12" />
+        </div>
+        <div>
+          <label>X-Moltbook-Identity (optional)</label>
+          <input id="identity" type="text" placeholder="identity token" />
+        </div>
+      </div>
+      <button id="runBtn">Run Agent</button>
+      <label>Output</label>
+      <pre id="output">Ready.</pre>
+    </div>
+  </div>
+
+<script>
+const output = document.getElementById('output');
+const runBtn = document.getElementById('runBtn');
+const agentName = document.getElementById('agentName');
+
+runBtn.addEventListener('click', async () => {
+  const goal = document.getElementById('goal').value.trim();
+  const maxSteps = document.getElementById('maxSteps').value.trim() || '12';
+  const identity = document.getElementById('identity').value.trim();
+
+  if (!goal) {
+    output.textContent = 'Goal is required.';
+    return;
+  }
+
+  runBtn.disabled = true;
+  output.textContent = 'Running...';
+
+  try {
+    const headers = {'Content-Type': 'application/json'};
+    if (identity) headers['X-Moltbook-Identity'] = identity;
+
+    const res = await fetch('/api/run', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({goal, max_steps: maxSteps}),
+    });
+
+    const text = await res.text();
+    let payload;
+    try { payload = JSON.parse(text); } catch { payload = {raw: text}; }
+
+    if (!res.ok) {
+      output.textContent = JSON.stringify(payload, null, 2);
+      agentName.textContent = 'anonymous';
+      return;
+    }
+
+    const agent = payload.agent || {};
+    agentName.textContent = agent.name || 'anonymous';
+    output.textContent = payload.output || '(empty output)';
+  } catch (e) {
+    output.textContent = 'Request failed: ' + String(e);
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>"""
+
   <title>IKOL Web Terminal</title>
   <style>
     body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0b1020; color:#e6edf3; margin:0; }
@@ -95,6 +198,10 @@ class MoltbookIdentityVerifier:
             return AuthResult(ok=False, status_code=502, error="verify_invalid_response")
 
         valid = bool(data.get("valid"))
+        if valid:
+            return AuthResult(ok=True, status_code=200, agent=data.get("agent") or {})
+
+        error = data.get("error")
         error = data.get("error")
         if valid:
             agent = data.get("agent") or {}
@@ -110,6 +217,16 @@ class MoltbookIdentityVerifier:
 class AppHandler(BaseHTTPRequestHandler):
     verified_agent: dict[str, Any] | None = None
 
+    def _send_json(self, payload: dict[str, Any], status_code: int = 200) -> None:
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _render_html(self) -> None:
+        encoded = PAGE_TEMPLATE.encode("utf-8")
     def _render(
         self,
         output: str = "Ready.",
@@ -133,6 +250,11 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _authenticate_agent(self) -> AuthResult:
+        token = (self.headers.get("X-Moltbook-Identity", "") or "").strip()
+        if not token:
+            return AuthResult(ok=True, status_code=200, agent=None)
+
     def _send_json_error(self, status_code: int, message: str) -> None:
         payload = json.dumps({"error": message}, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
@@ -146,6 +268,7 @@ class AppHandler(BaseHTTPRequestHandler):
         if not app_key:
             return AuthResult(ok=False, status_code=500, error="moltbook_app_key_missing")
 
+        result = MoltbookIdentityVerifier(app_key).verify_token(token)
         token = (self.headers.get("X-Moltbook-Identity", "") or "").strip()
         if not token:
             return AuthResult(ok=False, status_code=401, error="missing_identity_token")
@@ -156,10 +279,33 @@ class AppHandler(BaseHTTPRequestHandler):
             self.verified_agent = result.agent
         return result
 
+    def _run_agent(self, goal: str, max_steps: str) -> tuple[int, str]:
+        command = ["python3", "main.py", "run", goal, "--max-steps", max_steps]
+        completed = subprocess.run(command, check=False, text=True, capture_output=True)
+        output = (completed.stdout + "\n" + completed.stderr).strip()
+        if not output:
+            output = f"Command finished with exit code {completed.returncode}."
+        return completed.returncode, output
+
     def do_GET(self) -> None:  # noqa: N802
         if self.path != "/":
             self.send_error(404)
             return
+        self._render_html()
+
+    def do_POST(self) -> None:  # noqa: N802
+        if self.path == "/api/run":
+            self._handle_api_run()
+            return
+        if self.path == "/run":
+            self._handle_legacy_form_run()
+            return
+        self.send_error(404)
+
+    def _handle_api_run(self) -> None:
+        auth = self._authenticate_agent()
+        if not auth.ok:
+            self._send_json({"error": auth.error or "unauthorized"}, status_code=auth.status_code)
     def do_GET(self) -> None:  # noqa: N802
         self._render()
 
@@ -175,6 +321,61 @@ class AppHandler(BaseHTTPRequestHandler):
 
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length).decode("utf-8", errors="ignore")
+        try:
+            body = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            self._send_json({"error": "invalid_json_body"}, status_code=400)
+            return
+
+        goal = str(body.get("goal", "")).strip()
+        max_steps = str(body.get("max_steps", "12")).strip() or "12"
+        if not goal:
+            self._send_json({"error": "goal_required"}, status_code=400)
+            return
+
+        code, output = self._run_agent(goal, max_steps)
+        status_code = 200 if code == 0 else 500
+        self._send_json(
+            {
+                "ok": code == 0,
+                "exit_code": code,
+                "agent": auth.agent,
+                "goal": goal,
+                "max_steps": max_steps,
+                "output": output,
+            },
+            status_code=status_code,
+        )
+
+    def _handle_legacy_form_run(self) -> None:
+        auth = self._authenticate_agent()
+        if not auth.ok:
+            self._send_json({"error": auth.error or "unauthorized"}, status_code=auth.status_code)
+            return
+
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8", errors="ignore")
+        form = parse_qs(raw)
+        goal = (form.get("goal", [""])[0] or "").strip()
+        max_steps = (form.get("max_steps", ["12"])[0] or "12").strip()
+
+        if not goal:
+            self._send_json({"error": "goal_required"}, status_code=400)
+            return
+
+        code, output = self._run_agent(goal, max_steps)
+        profile = auth.agent or {}
+        owner = profile.get("owner") or {}
+        summary = (
+            f"agent={profile.get('name','anonymous')} karma={profile.get('karma','?')} "
+            f"owner={owner.get('x_handle','unknown')}\n\n"
+        )
+        status_code = 200 if code == 0 else 500
+        self._send_json({"ok": code == 0, "exit_code": code, "output": summary + output, "agent": profile}, status_code=status_code)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run IKOL as a tiny web console")
         data = parse_qs(raw)
 
         goal = (data.get("goal", [""])[0] or "").strip()
@@ -219,6 +420,9 @@ def main() -> None:
 
     if not os.getenv("OPENAI_API_KEY") and not os.getenv("OPENROUTER_API_KEY"):
         print("Warning: set OPENAI_API_KEY or OPENROUTER_API_KEY before running requests.")
+
+    httpd = HTTPServer((args.host, args.port), AppHandler)
+    print(f"IKOL Web Console running on http://{args.host}:{args.port}")
     if not os.getenv("MOLTBOOK_APP_KEY"):
         print("Warning: set MOLTBOOK_APP_KEY to verify X-Moltbook-Identity tokens.")
 

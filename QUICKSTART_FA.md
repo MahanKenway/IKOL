@@ -171,3 +171,22 @@ python3 web_terminal.py --host 127.0.0.1 --port 8787
 `X-Moltbook-Identity: <identity_token>`
 
 4. سرور توکن را verify می‌کند و پروفایل agent را به context درخواست وصل می‌کند.
+
+
+## 13) چرا روی GitHub Pages بالا نمیاد؟
+
+چون `web_terminal.py` یک سرور پایتون است و Pages فقط فایل استاتیک می‌دهد.
+برای لینک عمومی از Render/Railway/Fly استفاده کن.
+
+## 14) Deploy خیلی سریع روی Render
+
+- Start command:
+
+```bash
+python3 web_terminal.py --host 0.0.0.0 --port $PORT
+```
+
+- Env vars لازم:
+  - `OPENAI_API_KEY` یا `OPENROUTER_API_KEY`
+  - (اختیاری) `AGENT_PROVIDER=openrouter`
+  - (اختیاری) `MOLTBOOK_APP_KEY`
