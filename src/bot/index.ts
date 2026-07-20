@@ -1,6 +1,6 @@
 // Bot setup - Cloudflare Workers compatible
 
-import { Bot, Composer } from 'grammy';
+import { Bot } from 'grammy';
 import {
   userMiddleware,
   rateLimitMiddleware,
@@ -22,43 +22,36 @@ export function createBot(token: string) {
   // Commands
   bot.command('start', (ctx) => {
     const name = ctx.from?.first_name || 'there';
-    return ctx.reply(
-      `Hello ${name}! I'm IKOL (Intelligent Knowledge & Operations Layer).\n\n` +
-      `I'm an AI assistant that can help you with various tasks.\n\n` +
-      `Use /help to see available commands.`
-    );
+    const lang = (ctx as any).language || 'en';
+    const text = lang === 'fa'
+      ? `سلام ${name}! 👋\nمن IKOL هستم.\nاز /help برای راهنما استفاده کنید.`
+      : `Hello ${name}! 👋\nI'm IKOL.\nUse /help for commands.`;
+    return ctx.reply(text);
   });
 
   bot.command('help', (ctx) => {
     return ctx.reply(
       'IKOL Commands:\n\n' +
-      '/start - Welcome message\n' +
-      '/help - Show this help\n' +
+      '/start - Welcome\n' +
+      '/help - Help\n' +
       '/time - Current time\n' +
-      '/ping - Test connection\n\n' +
-      'You can also send me any text message!'
+      '/ping - Test connection'
     );
   });
 
   bot.command('time', (ctx) => {
-    const now = new Date();
-    return ctx.reply(`Current time: ${now.toUTCString()}`);
+    return ctx.reply(`Time: ${new Date().toUTCString()}`);
   });
 
   bot.command('ping', (ctx) => {
-    return ctx.reply('Pong! Connection is active.');
+    return ctx.reply('Pong!');
   });
 
-  // Handle text messages
   bot.on('message:text', (ctx) => {
-    const text = ctx.message.text;
-    return ctx.reply(`I received: ${text}\n\nUse /help to see commands.`);
+    return ctx.reply(`Received: ${ctx.message.text}`);
   });
 
-  // Error handler
-  bot.catch((err) => {
-    console.error('Bot error:', err);
-  });
+  bot.catch((err) => console.error('Bot error:', err));
 
   return bot;
 }
