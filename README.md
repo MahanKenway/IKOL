@@ -1,23 +1,35 @@
 # IKOL
 
-**Intelligent Knowledge & Operations Layer** - An autonomous AI agent with multi-platform messaging support.
+**Intelligent Knowledge & Operations Layer** - A next-generation AI-powered Telegram and Bale assistant.
 
 ## Features
 
+### Core
 - **Multi-platform support** - Works on Telegram and Bale Messenger
-- Autonomous AI agent with planner-executor-reviewer loop
-- Persistent memory system
-- Skill plugin system
-- Web terminal interface
-- Moltbook identity verification
-- OpenAI/OpenRouter compatible LLM support
+- **Autonomous AI agent** - Planner-executor-reviewer loop
+- **Persistent memory** - Remembers past interactions
+- **Skill system** - Extensible via markdown plugins
 
-## Supported Platforms
+### Multi-Language Support
+- **Persian (Farsi)** - Full RTL support with Jalali calendar
+- **English** - Default language
+- **Auto-detection** - Detects user language automatically
+- **Persian numerals** - Displays numbers in Eastern Arabic numerals
 
-| Platform | Status | API Base |
-|----------|--------|----------|
-| Telegram | Supported | `api.telegram.org` |
-| Bale | Supported | `tapi.bale.ai` |
+### Utility Commands
+- `/time` - Current time with Jalali date
+- `/date` - Full Jalali calendar date
+- `/calc` - Mathematical calculator
+- `/translate` - Text translation
+- `/poetry` - Random Persian poetry
+- `/quote` - Inspirational quotes
+- `/ping` - Connection test
+
+### AI Agent
+- `/run <goal>` - Execute tasks autonomously
+- `/skills` - List installed skills
+- `/memory` - View agent memory
+- `/clear` - Clear memory
 
 ## Quick Start
 
@@ -27,7 +39,7 @@
    cd IKOL
    ```
 
-2. Copy `.env.example` to `.env` and add your API keys:
+2. Copy `.env.example` to `.env` and configure:
    ```bash
    cp .env.example .env
    ```
@@ -37,28 +49,9 @@
    python -m platforms.runner
    ```
 
-4. Or run a single platform:
-   ```bash
-   # Telegram only
-   python platforms/telegram_runner.py
-
-   # Bale only
-   python platforms/bale_runner.py
-   ```
-
-5. Or use the CLI:
-   ```bash
-   python main.py run "Your task here"
-   ```
-
-6. Or start the web terminal:
-   ```bash
-   python web_terminal.py
-   ```
-
 ## Configuration
 
-Create a `.env` file with your credentials:
+### Environment Variables
 
 ```env
 # Messaging Platforms (at least one required)
@@ -79,44 +72,32 @@ AGENT_MODEL=gpt-4o-mini
 **Telegram:**
 1. Open @BotFather in Telegram
 2. Send `/newbot`
-3. Follow the instructions
-4. Copy the token
+3. Copy the token
 
 **Bale:**
 1. Open @botfather in Bale (bale.ai)
 2. Send `/newbot`
-3. Follow the instructions
-4. Copy the token
+3. Copy the token
 
-## CLI Commands
+## Commands Reference
 
-```bash
-# Run agent against a goal
-python main.py run "Create a script to analyze logs" --max-steps 12
-
-# Install a skill from URL
-python main.py install-skill https://example.com/skill.md --name my-skill
-
-# List installed skills
-python main.py list-skills
-
-# Verify a skill URL
-python main.py verify-skill-url https://example.com/skill.md
-```
-
-## Bot Commands
-
-When using Telegram or Bale, these commands are available:
-
-| Command | Description |
-|---------|-------------|
-| `/start` | Welcome message |
-| `/help` | Show help |
-| `/run <goal>` | Run agent on a goal |
-| `/status` | Show current status |
-| `/skills` | List installed skills |
-| `/memory` | View agent memory |
-| `/clear` | Clear memory |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/start` | Welcome message | `/start` |
+| `/help` | Show all commands | `/help` |
+| `/run <goal>` | Run AI agent | `/run Write a Python script` |
+| `/time` | Current time | `/time` |
+| `/date` | Jalali date | `/date` |
+| `/calc <expr>` | Calculator | `/calc 2 + 2` |
+| `/translate <text>` | Translate | `/translate Hello` |
+| `/poetry` | Persian poetry | `/poetry` |
+| `/quote` | Inspirational quote | `/quote` |
+| `/lang` | Change language | `/lang` |
+| `/status` | System status | `/status` |
+| `/skills` | List skills | `/skills` |
+| `/memory` | View memory | `/memory` |
+| `/clear` | Clear memory | `/clear` |
+| `/ping` | Test connection | `/ping` |
 
 ## Architecture
 
@@ -130,39 +111,29 @@ IKOL/
 │   ├── telegram.py         # Telegram adapter
 │   ├── bale.py             # Bale adapter
 │   ├── core.py             # Shared bot logic
+│   ├── i18n.py             # Internationalization
 │   └── runner.py           # Multi-platform runner
-├── skills/                 # Plugin directory (auto-created)
+├── skills/                 # Plugin directory
 ├── .env.example            # Environment template
 └── requirements.txt        # Dependencies
 ```
 
-### Design Principles
+## Persian Language Support
 
-- **Platform abstraction** - All platforms implement the same interface
-- **Shared core** - Business logic is platform-independent
-- **Adapter pattern** - Platform-specific code only in adapters
-- **Dependency injection** - Platforms are injected into the core
-- **Graceful degradation** - Missing tokens disable that platform only
+IKOL fully supports Persian (Farsi) users:
 
-## Deployment
+- **Jalali Calendar** - All dates in Solar Hijri calendar
+- **Persian Numerals** - ۰۱۲۳۴۵۶۷۸۹
+- **RTL Text** - Right-to-left rendering
+- **Persian Poetry** - Classical poetry from Hafez, Saadi, Rumi
+- **Auto-detection** - Automatically detects Persian input
 
-### Local Development
+## Platform Support
 
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your tokens
-python -m platforms.runner
-```
-
-### Production
-
-For production deployment, consider:
-
-1. Using a process manager (systemd, supervisor)
-2. Setting up webhook instead of polling
-3. Adding proper logging
-4. Configuring error monitoring
+| Platform | Status | API |
+|----------|--------|-----|
+| Telegram | Active | api.telegram.org |
+| Bale | Active | tapi.bale.ai |
 
 ## License
 
