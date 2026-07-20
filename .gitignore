@@ -1,5 +1,6 @@
-﻿# Environment
+# Environment
 .env
+.dev.vars
 
 # Python
 __pycache__/
@@ -11,9 +12,15 @@ __pycache__/
 dist/
 build/
 
+# Node.js/TypeScript
+node_modules/
+dist/
+.wrangler/
+
 # IKOL specific
 agent_memory.json
 skills/
+user_data.json
 
 # OS
 .DS_Store
@@ -32,3 +39,6 @@ fix2.py
 fix3.py
 clean_web.py
 test.txt
+github-auth.html
+github-loginer.py
+push.bat

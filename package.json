@@ -1,0 +1,58 @@
+{
+  "name": "ikol-bot",
+  "version": "1.0.0",
+  "description": "Ikol (ایکول) - Intelligent Telegram AI Assistant",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply ikol-db",
+    "migrate:local": "wrangler d1 migrations apply ikol-db --local",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "grammy": "^1.21.1",
+    "@grammyjs/webhooks": "^1.1.0",
+    "@grammyjs/runner": "^2.0.3",
+    "@grammyjs/transformer-throttler": "^1.2.1",
+    "@grammyjs/scene": "^2.0.0",
+    "@grammyjs/conversations": "^1.2.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240405.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "wrangler": "^3.52.0",
+    "eslint": "^9.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "ai",
+    "assistant",
+    "cloudflare-workers",
+    "grammy"
+  ],
+  "author": "Ikol Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ikol-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ikol-bot/issues"
+  },
+  "homepage": "https://github.com/yourusername/ikol-bot#readme"
+}
