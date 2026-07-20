@@ -1,62 +1,48 @@
-import { Bot } from 'grammy';
+// IKOL Bot - Cloudflare Workers Entry Point
+
+import { createBot } from './bot/index.js';
 import type { Env } from './types/env.js';
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Handle webhook verification
-    if (request.method === 'GET') {
-      const url = new URL(request.url);
-      if (url.pathname === '/health') {
-        return new Response('OK', { status: 200 });
-      }
-      if (url.pathname === '/') {
-        return new Response('Ikol Bot is running!', { status: 200 });
-      }
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Health check
+    if (url.pathname === '/health') {
+      return new Response('OK', { status: 200 });
     }
 
-    // Only handle POST requests for Telegram updates
+    // Home page
+    if (url.pathname === '/') {
+      return new Response('IKOL Bot is running!', { status: 200 });
+    }
+
+    // Only handle POST for Telegram webhooks
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
 
     try {
-      // Create bot instance
-      const bot = new Bot(env.BOT_TOKEN);
+      // Create bot with token from environment
+      const bot = createBot(env.TELEGRAM_BOT_TOKEN);
 
-      // Set bot info to avoid getMe call on each request
+      // Cache bot info in KV to avoid getMe on every request
       const botInfoStr = await env.KV.get('bot_info');
       if (botInfoStr) {
-        const botInfo = JSON.parse(botInfoStr);
-        bot.botInfo = botInfo;
+        bot.botInfo = JSON.parse(botInfoStr);
       } else {
-        // Fetch and cache bot info
         const me = await bot.api.getMe();
         await env.KV.put('bot_info', JSON.stringify(me), { expirationTtl: 86400 });
         bot.botInfo = me;
       }
 
-      // Inject environment into context
-      bot.use(async (ctx, next) => {
-        (ctx as any).env = env;
-        await next();
-      });
-
-      // Simple command handler
-      bot.command('start', (ctx) => {
-        return ctx.reply('Hello! I am Ikol Bot.');
-      });
-
-      bot.command('help', (ctx) => {
-        return ctx.reply('Available commands:\n/start - Welcome\n/help - Help');
-      });
-
-      // Process the update
+      // Process the Telegram update
       const update = await request.json();
       await bot.handleUpdate(update as any);
 
       return new Response('OK', { status: 200 });
     } catch (error) {
-      console.error('Bot error:', error);
+      console.error('Worker error:', error);
       return new Response('Internal server error', { status: 500 });
     }
   },

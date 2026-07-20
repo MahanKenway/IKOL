@@ -1,12 +1,6 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+// Cloudflare Workers compatible logger
 
-export interface LogEntry {
-  timestamp: string;
-  level: LogLevel;
-  message: string;
-  context?: Record<string, unknown>;
-  error?: Error;
-}
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export class Logger {
   private level: LogLevel;
@@ -22,82 +16,43 @@ export class Logger {
     return levels.indexOf(level) >= levels.indexOf(this.level);
   }
 
-  private formatEntry(entry: LogEntry): string {
-    const prefix = `[${entry.timestamp}] [${entry.level.toUpperCase()}]`;
-    const contextStr = Object.keys(entry.context || {}).length
-      ? ` ${JSON.stringify(entry.context)}`
-      : '';
-    const errorStr = entry.error ? `\n${entry.error.stack}` : '';
-    return `${prefix} ${entry.message}${contextStr}${errorStr}`;
-  }
-
   debug(message: string, context?: Record<string, unknown>) {
     if (!this.shouldLog('debug')) return;
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level: 'debug',
-      message,
-      context: { ...this.context, ...context },
-    };
-    console.log(this.formatEntry(entry));
+    console.log(`[DEBUG] ${message}`, { ...this.context, ...context });
   }
 
   info(message: string, context?: Record<string, unknown>) {
     if (!this.shouldLog('info')) return;
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message,
-      context: { ...this.context, ...context },
-    };
-    console.log(this.formatEntry(entry));
+    console.log(`[INFO] ${message}`, { ...this.context, ...context });
   }
 
   warn(message: string, context?: Record<string, unknown>) {
     if (!this.shouldLog('warn')) return;
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level: 'warn',
-      message,
-      context: { ...this.context, ...context },
-    };
-    console.warn(this.formatEntry(entry));
+    console.warn(`[WARN] ${message}`, { ...this.context, ...context });
   }
 
   error(message: string, error?: Error, context?: Record<string, unknown>) {
     if (!this.shouldLog('error')) return;
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level: 'error',
-      message,
-      context: { ...this.context, ...context },
-      error,
-    };
-    console.error(this.formatEntry(entry));
+    console.error(`[ERROR] ${message}`, error, { ...this.context, ...context });
   }
 
-  // Create child logger with additional context
   child(context: Record<string, unknown>): Logger {
     return new Logger(this.level, { ...this.context, ...context });
   }
 }
 
-// Singleton logger instance
+// Singleton logger
 let logger: Logger | null = null;
 
-// Accept LogLevel or context object
-export function getLogger(levelOrContext?: LogLevel | { module?: string; service?: string }): Logger {
+export function getLogger(context?: LogLevel | Record<string, unknown>): Logger {
   if (!logger) {
-    let level: LogLevel = 'info';
-    let context: Record<string, unknown> = {};
-
-    if (typeof levelOrContext === 'string') {
-      level = levelOrContext;
-    } else if (levelOrContext && typeof levelOrContext === 'object') {
-      context = levelOrContext;
+    if (typeof context === 'string') {
+      logger = new Logger(context);
+    } else if (context && typeof context === 'object') {
+      logger = new Logger('info', context);
+    } else {
+      logger = new Logger('info');
     }
-
-    logger = new Logger(level, context);
   }
   return logger;
 }
