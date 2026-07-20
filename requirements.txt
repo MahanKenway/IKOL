@@ -1,6 +1,9 @@
-﻿# IKOL - Intelligent Knowledge & Operations Layer
-# 
+# IKOL - Intelligent Knowledge & Operations Layer
+#
 # This project uses only Python standard library modules.
 # No external dependencies are required.
 #
-# Python 3.10+ is recommended.
+# Python 3.10+ is required for:
+# - Union type syntax (str | None)
+# - Pattern matching
+# - Improved error messages
