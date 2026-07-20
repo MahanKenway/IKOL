@@ -1,0 +1,6 @@
+﻿# IKOL - Intelligent Knowledge & Operations Layer
+# 
+# This project uses only Python standard library modules.
+# No external dependencies are required.
+#
+# Python 3.10+ is recommended.

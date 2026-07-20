@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """IKOL: advanced autonomous agent with planning, reflection, memory, and skill installation."""
-"""IKOL: advanced autonomous agent with plannning, reflection, memory, and skill installation."""
 
 from __future__ import annotations
 
@@ -63,11 +62,6 @@ class SkillRegistry:
         err = (completed.stderr or completed.stdout).strip()[:300]
         return False, f"curl_failed code={completed.returncode} details={err}"
 
-    def install_from_url(self, url: str, name: str | None = None) -> str:
-        body, source = self._download_skill(url)
-        if body is None:
-            return source
-        return sorted([p.name for p in self.root.iterdir() if p.is_dir() and (p / "SKILL.md").exists()])
 
     def install_from_url(self, url: str, name: str | None = None) -> str:
         try:
@@ -105,7 +99,6 @@ class SkillRegistry:
                 None,
                 f"Skill download failed. curl=({curl_message}) urllib=({exc})",
             )
-        return f"Installed skill '{skill_name}' from {url}"
 
     def read_skill_bodies(self, limit_chars: int = 8000) -> str:
         chunks: list[str] = []
@@ -161,10 +154,6 @@ class OpenAICompatibleLLM:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.extra_headers = extra_headers or {}
-    def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1"):
-        self.model = model
-        self.api_key = api_key
-        self.base_url = base_url.rstrip("/")
 
     def chat(self, messages: list[dict[str, str]], temperature: float = 0.2) -> str:
         payload = {
@@ -181,13 +170,6 @@ class OpenAICompatibleLLM:
             f"{self.base_url}/chat/completions",
             data=json.dumps(payload).encode("utf-8"),
             headers=headers,
-        req = request.Request(
-            f"{self.base_url}/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
             method="POST",
         )
         with request.urlopen(req, timeout=90) as resp:  # noqa: S310
@@ -241,7 +223,6 @@ class AutonomousAgent:
         memory: list[dict[str, Any]],
         history: list[dict[str, Any]],
     ) -> str:
-    def _executor_prompt(self, goal: str, plan: dict[str, Any], memory: list[dict[str, Any]], history: list[dict[str, Any]]) -> str:
         installed_skills = self.skill_registry.read_skill_bodies(limit_chars=6000)
         return textwrap.dedent(
             f"""
@@ -383,13 +364,6 @@ def build_runtime() -> tuple[AutonomousAgent, SkillRegistry, AgentMemory]:
         base_url=base_url,
         extra_headers=extra_headers,
     )
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if not api_key:
-        raise RuntimeError("Set OPENAI_API_KEY in your environment.")
-
-    model = os.getenv("AGENT_MODEL", "gpt-4o-mini")
-    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-    llm = OpenAICompatibleLLM(model=model, api_key=api_key, base_url=base_url)
     skill_registry = SkillRegistry(Path(os.getenv("AGENT_SKILLS_DIR", "skills")))
     tools = {
         "read_file": LocalTools.read_file,
