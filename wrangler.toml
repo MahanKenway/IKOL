@@ -1,5 +1,6 @@
 name = "ikol-bot"
 main = "dist/index.js"
+
 compatibility_date = "2024-04-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -10,21 +11,12 @@ ENVIRONMENT = "production"
 [[d1_databases]]
 binding = "DB"
 database_name = "ikol-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "7afab1d3-e2cf-45a3-8a3f-31a549e13d29"
 
 # KV Storage
 [[kv_namespaces]]
 binding = "KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE"
-
-# R2 Storage (for media caching)
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "ikol-media"
-
-# Static assets (optional)
-[site]
-bucket = "./public"
+id = "fb84b43d28c34ee6bf66a780d254a0a4"
 
 # Build configuration
 [build]
@@ -40,4 +32,4 @@ local_protocol = "http"
 name = "ikol-bot-prod"
 
 [env.staging]
-name = "ikol-bot-staging"
+name = "ikol-bot-staging""
