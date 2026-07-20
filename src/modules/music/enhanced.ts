@@ -47,7 +47,7 @@ bot.command('lyrics', async (ctx) => {
 });
 
 // Handle music callback queries
-bot.callback_query(/^music:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^music:(.+)$/, async (ctx) => {
   const action = ctx.match[1];
   await ctx.answerCallbackQuery();
 

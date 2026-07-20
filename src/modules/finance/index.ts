@@ -157,14 +157,14 @@ bot.command('crypto', async (ctx) => {
 });
 
 // Callback handlers
-bot.callback_query('finance:refresh_currency', async (ctx) => {
+bot.callbackQuery('finance:refresh_currency', async (ctx) => {
   await ctx.answerCallbackQuery();
   // Re-trigger currency command
   await ctx.reply('🔄 Refreshing exchange rates...');
   // In a real implementation, you'd re-fetch and update the message
 });
 
-bot.callback_query('finance:refresh_gold', async (ctx) => {
+bot.callbackQuery('finance:refresh_gold', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.reply('🔄 Refreshing gold prices...');
 });

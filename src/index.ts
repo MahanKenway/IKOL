@@ -1,5 +1,4 @@
-import { createBunMiddleware } from 'grammy';
-import { createBot } from './bot/index.js';
+import { Bot } from 'grammy';
 import type { Env } from './types/env.js';
 
 export default {
@@ -22,10 +21,9 @@ export default {
 
     try {
       // Create bot instance
-      const bot = createBot(env.BOT_TOKEN);
+      const bot = new Bot(env.BOT_TOKEN);
 
       // Set bot info to avoid getMe call on each request
-      // This should be cached and updated periodically
       const botInfoStr = await env.KV.get('bot_info');
       if (botInfoStr) {
         const botInfo = JSON.parse(botInfoStr);
@@ -41,6 +39,15 @@ export default {
       bot.use(async (ctx, next) => {
         (ctx as any).env = env;
         await next();
+      });
+
+      // Simple command handler
+      bot.command('start', (ctx) => {
+        return ctx.reply('Hello! I am Ikol Bot.');
+      });
+
+      bot.command('help', (ctx) => {
+        return ctx.reply('Available commands:\n/start - Welcome\n/help - Help');
       });
 
       // Process the update

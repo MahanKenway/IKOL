@@ -150,7 +150,7 @@ async function handleEnhancedDownload(
 }
 
 // Handle download callback queries
-bot.callback_query(/^download:(audio|video):(.+)$/, async (ctx) => {
+bot.callbackQuery(/^download:(audio|video):(.+)$/, async (ctx) => {
   const format = ctx.match[1] as 'audio' | 'video';
   const url = ctx.match[2];
 

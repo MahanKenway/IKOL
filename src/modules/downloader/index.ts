@@ -55,7 +55,7 @@ bot.on('message:text', async (ctx) => {
 });
 
 // Callback queries for download options
-bot.callback_query(/^download:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^download:(.+)$/, async (ctx) => {
   const action = ctx.match[1];
   const data = JSON.parse(ctx.callbackQuery.data.split(':').slice(1).join(':') || '{}');
   

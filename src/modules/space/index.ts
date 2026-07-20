@@ -154,7 +154,7 @@ bot.command('space', async (ctx) => {
 });
 
 // Callback handlers
-bot.callback_query(/^space:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^space:(.+)$/, async (ctx) => {
   const action = ctx.match[1];
   await ctx.answerCallbackQuery();
   

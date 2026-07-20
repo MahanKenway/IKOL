@@ -1,4 +1,4 @@
-import type { Env } from '../types/env.js';
+// Database service for Cloudflare D1
 
 export class DatabaseService {
   private db: D1Database;

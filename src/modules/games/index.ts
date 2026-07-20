@@ -203,7 +203,7 @@ bot.command('games', async (ctx) => {
 });
 
 // Callback handlers
-bot.callback_query(/^games:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^games:(.+)$/, async (ctx) => {
   const action = ctx.match[1];
   await ctx.answerCallbackQuery();
   

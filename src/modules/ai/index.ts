@@ -174,7 +174,7 @@ bot.command('clear', async (ctx) => {
 });
 
 // Handle AI provider selection callback
-bot.callback_query(/^ai:provider:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^ai:provider:(.+)$/, async (ctx) => {
   const provider = ctx.match[1];
   const db = (ctx as any).db;
   const userId = ctx.from?.id;

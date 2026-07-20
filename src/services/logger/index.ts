@@ -85,10 +85,19 @@ export class Logger {
 // Singleton logger instance
 let logger: Logger | null = null;
 
-export function getLogger(level?: LogLevel): Logger {
+// Accept LogLevel or context object
+export function getLogger(levelOrContext?: LogLevel | { module?: string; service?: string }): Logger {
   if (!logger) {
-    logger = new Logger(level || (typeof process !== 'undefined' ? 
-      (process.env.LOG_LEVEL as LogLevel) || 'info' : 'info'));
+    let level: LogLevel = 'info';
+    let context: Record<string, unknown> = {};
+
+    if (typeof levelOrContext === 'string') {
+      level = levelOrContext;
+    } else if (levelOrContext && typeof levelOrContext === 'object') {
+      context = levelOrContext;
+    }
+
+    logger = new Logger(level, context);
   }
   return logger;
 }

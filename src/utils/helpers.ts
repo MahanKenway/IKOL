@@ -1,4 +1,13 @@
-import { CONFIG } from '../../config/index.js';
+// Config constants (inline to avoid import issues)
+const CONFIG = {
+  APIS: {
+    DEEZER: 'https://api.deezer.com',
+    NASA: 'https://api.nasa.gov',
+    SPACEX: 'https://api.spacexdata.com/v4',
+    FRANKFURTER: 'https://api.frankfurter.app',
+    METALS_LIVE: 'https://api.metals.live/v1',
+  },
+};
 
 // URL pattern matching for platform detection
 const PLATFORM_PATTERNS: Record<string, RegExp[]> = {
