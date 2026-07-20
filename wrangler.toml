@@ -1,6 +1,5 @@
 name = "ikol-bot"
 main = "dist/index.js"
-
 compatibility_date = "2024-04-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -32,4 +31,4 @@ local_protocol = "http"
 name = "ikol-bot-prod"
 
 [env.staging]
-name = "ikol-bot-staging""
+name = "ikol-bot-staging"
