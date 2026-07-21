@@ -45,6 +45,16 @@ export default {
     // Lazy cleanup of dedup cache
     cleanupProcessedUpdates();
 
+    // DIAGNOSTIC: Log every incoming request
+    logger.info('REQUEST RECEIVED', {
+      requestId,
+      method: request.method,
+      pathname: url.pathname,
+      contentType: request.headers.get('content-type'),
+      hasSecret: !!request.headers.get('X-Telegram-Bot-Api-Secret-Token'),
+      userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    });
+
     // Health check endpoints
     if (request.method === 'GET') {
       if (url.pathname === '/health') {
@@ -75,6 +85,17 @@ export default {
         return new Response('Ikol Bot v2.0 is running!', { status: 200 });
       }
       return new Response('Not found', { status: 404 });
+    }
+
+    // DIAGNOSTIC: Test endpoint - simulate Telegram update
+    if (request.method === 'GET' && url.pathname === '/test') {
+      logger.info('TEST ENDPOINT HIT', { requestId });
+      return Response.json({
+        status: 'ok',
+        message: 'Worker is reachable',
+        timestamp: Date.now(),
+        version: '2.1.0',
+      });
     }
 
     // Only handle POST for Telegram webhooks
@@ -198,9 +219,23 @@ export default {
         hasMessage: !!update.message,
         hasCallback: !!update.callback_query,
         hasEntities: !!update.message?.entities,
+        botTokenPrefix: botToken.substring(0, 10),
+        botHasInfo: !!bot.botInfo,
       });
 
-      await bot.handleUpdate(update);
+      try {
+        await bot.handleUpdate(update);
+        logger.info('handleUpdate completed', { requestId, updateId, userId });
+      } catch (handleError) {
+        logger.error('handleUpdate FAILED', {
+          requestId,
+          updateId,
+          userId,
+          error: (handleError as Error).message,
+          stack: (handleError as Error).stack?.substring(0, 500),
+        });
+        throw handleError;
+      }
       const duration = Date.now() - start;
 
       metrics.recordLatency('webhook', duration);
