@@ -1,0 +1,48 @@
+{
+  "name": "ikol-bot",
+  "version": "1.0.0",
+  "description": "Ikol (ایکول) - Intelligent Telegram AI Assistant",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply ikol-db",
+    "migrate:local": "wrangler d1 migrations apply ikol-db --local",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "grammy": "^1.21.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260716.1",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "wrangler": "^4.112.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "ai",
+    "assistant",
+    "cloudflare-workers",
+    "grammy"
+  ],
+  "author": "Ikol Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ikol-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ikol-bot/issues"
+  },
+  "homepage": "https://github.com/yourusername/ikol-bot#readme"
+}

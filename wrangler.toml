@@ -1,0 +1,36 @@
+name = "ikol"
+main = "dist/index.js"
+compatibility_date = "2024-09-25"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "ikol"
+database_id = "7afab1d3-e2cf-45a3-8a3f-31a549e13d29"
+
+# KV Storage
+[[kv_namespaces]]
+binding = "KV"
+id = "fb84b43d28c34ee6bf66a780d254a0a4"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Dev server
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Production settings
+[placement]
+mode = "smart"
+
+# Log push (optional)
+# [[logpush]]
+# destination = "cloudflare-r2"
+# bucket = "ikol-logs"
